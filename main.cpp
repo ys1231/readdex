@@ -23,6 +23,7 @@ int main(int argc , char * argv[]){
     readdex.analyseDexHeader();
     readdex.analyseStrings();
     readdex.analyseTypeStrings();
+    readdex.analyseProtoIds();
 
     return 0;
 }

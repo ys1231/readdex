@@ -1,6 +1,6 @@
 //
 // Created by iyue on 2022/7/10.
-//
+// 学了很多次 直接用中文注释方便快速回顾理解
 
 #ifndef READDEX_READDEX_H
 #define READDEX_READDEX_H
@@ -14,7 +14,9 @@
 #include <iostream>
 using namespace std;
 
-// 一下结构体来源于 dex_file.h  源码 android-11.0.0_r46/art/libdexfile/dex/dex_file.h
+// 以下结构体来源于 dex_file.h  源码 android-11.0.0_r46/art/libdexfile/dex/dex_file.h
+// 其它结构体位于 android-11.0.0_r46/art/libdexfile/dex/dex_file_structs.h 不同版本存在差异 可通过一些关键字全局搜索
+
 // 文件头结构体
 static constexpr size_t kSha1DigestSize = 20;
 typedef struct _DexHeader {
@@ -31,7 +33,7 @@ typedef struct _DexHeader {
     uint32_t string_ids_off_ = 0;   // 11. 保存的是 偏移 其它数据结构通过索引 来访问字符串池
     uint32_t type_ids_size_ = 0;    // 12. dex中的类型数据结构的个数
     uint32_t type_ids_off_ = 0;     // 13. 偏移 比如类类型,基本类型等信息
-    uint32_t proto_ids_size_ = 0;   // 14. dex中元数据信息数据结构的大小
+    uint32_t proto_ids_size_ = 0;   // 14. dex中元数据信息数据结构的个数
     uint32_t proto_ids_off_ = 0;    // 15. 偏移 比如方法的返回类型,参数类型等信息
     uint32_t field_ids_size_ = 0;    // 16. dex中字段信息的数据结构大小
     uint32_t field_ids_off_ = 0;     // 17. 偏移
@@ -43,6 +45,13 @@ typedef struct _DexHeader {
     uint32_t data_off_ = 0;         // 23. 偏移 比如定义的常量值等信息
 }DexHeader,*PDexHeader;
 
+// 方法原型
+typedef struct _ProtoIdsItem
+{
+    uint32_t shorty_idx = 0;			// 1. 索引string
+    uint32_t return_type_idx = 0;		// 2. 索引type
+    uint32_t parameters_off = 0;		// 3. 偏移 里面是 4字节个数 和 2字节下标数组  0 表示没有参数
+}ProtoIdsItem,*PProtoIdsItem;
 
 class readDex {
 
@@ -58,9 +67,13 @@ private:
     // 文件头指针
     PDexHeader m_pDexHeader;
     // 文件内存首地址
-    char * m_buff;
+    char * m_pBuff;
     // 字符串索引首地址
-    uint32_t * m_string_ids;
+    uint32_t * m_pStringIds;
+    // 类型字符串索引首地址
+    int * m_pTypeIds;
+    // 方法原型索引首地址
+    PProtoIdsItem m_pProtoIdsItem;
 
 public:
     // 分析文件头
@@ -69,11 +82,15 @@ public:
     bool analyseStrings();
     // 分析所有类型字符串信息
     bool analyseTypeStrings();
+    // 分析方法原型
+    bool analyseProtoIds();
 private:
-    // 索引字符串偏移地址
-    char *  indexString(int index,bool hide = false);
+    // 索引字符串偏移地址    默认隐藏中文+序号
+    char *  indexString(int index,bool hide = true);
     // 索引类型字符串
-    char * indexType(int index,bool hide = false);
+    char * indexType(int index,bool hide = true);
+    // 索引方法原型
+    char * indexProtoIds(int index,bool hide = true);
 };
 
 
