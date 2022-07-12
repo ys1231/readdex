@@ -101,22 +101,36 @@ char* readDex::indexString(int index,bool hide) {
     // 单个字符在内存中的位置=单个字符串偏移[索引字符串] + 内存首地址
     char* stringoff = ( char*)(m_buff + m_string_ids[index]);
     // 获取每一个字符串所占多少字节 第一个字节表示整个字符串所占多少字节
-    const int size = *(stringoff);
-    // 获取字符串 -- bug 以\0结尾原理 异常就完蛋
+    //const int size = *(stringoff);  每个字符串第一个字节为整个字符串长度 这里用特性\0结尾解析 获取字符串 -- bug 以\0结尾原理 异常就完蛋
     char* str = (char*)(stringoff + 1);
-    // 显示对应的字符串 默认显示
+    // 隐藏对应的字符串 默认显示
     if (!hide)
         printf("第%d个:\t%s\n", index, str);
-    else
-        printf("\t%s\n", str);
     return str;
 }
 
 bool readDex::analyseStrings() {
+    // 根据文件头 字符串个数  索引类型字符串池 获取全部字符串
     for (int i = 0; i < m_pDexHeader->string_ids_size_; ++i) {
         indexString(i);
     }
-    return false;
+    return true;
 }
+
+char *readDex::indexType(int index, bool hide) {
+    // 根据type偏移得到 字符串池下标 传入 字符串池 索引对应字符
+    int * ofset=(int*)(m_pDexHeader->type_ids_off_ + m_buff);
+    return indexString(ofset[index],hide);
+}
+
+bool readDex::analyseTypeStrings() {
+    // 根据文件头 typesize  个数 索引类型字符串池 获取全部类型字符串
+    for (int i = 0; i < m_pDexHeader->type_ids_size_; ++i) {
+        indexType(i);
+    }
+    return true;
+}
+
+
 
 

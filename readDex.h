@@ -29,7 +29,7 @@ typedef struct _DexHeader {
     uint32_t map_off_ = 0;          // 9. map list 里除了对素引区和数据区的偏移地址又一次描述， 也有其他诸如 HEAD ITEM、 DEBUG INFO ITEM 等信息。
     uint32_t string_ids_size_ = 0;  // 10. dex中所有字符串内容的 个数
     uint32_t string_ids_off_ = 0;   // 11. 保存的是 偏移 其它数据结构通过索引 来访问字符串池
-    uint32_t type_ids_size_ = 0;    // 12. dex中的类型数据结构的大小
+    uint32_t type_ids_size_ = 0;    // 12. dex中的类型数据结构的个数
     uint32_t type_ids_off_ = 0;     // 13. 偏移 比如类类型,基本类型等信息
     uint32_t proto_ids_size_ = 0;   // 14. dex中元数据信息数据结构的大小
     uint32_t proto_ids_off_ = 0;    // 15. 偏移 比如方法的返回类型,参数类型等信息
@@ -60,15 +60,20 @@ private:
     // 文件内存首地址
     char * m_buff;
     // 字符串索引首地址
-    uint32_t* m_string_ids;
+    uint32_t * m_string_ids;
 
 public:
     // 分析文件头
     bool analyseDexHeader();
-    // 索引字符串偏移地址
-    char*  indexString(int index,bool hide = false);
     // 分析所有字符串信息
     bool analyseStrings();
+    // 分析所有类型字符串信息
+    bool analyseTypeStrings();
+private:
+    // 索引字符串偏移地址
+    char *  indexString(int index,bool hide = false);
+    // 索引类型字符串
+    char * indexType(int index,bool hide = false);
 };
 
 

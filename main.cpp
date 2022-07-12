@@ -22,6 +22,7 @@ int main(int argc , char * argv[]){
     readDex readdex(dexFilePath);
     readdex.analyseDexHeader();
     readdex.analyseStrings();
+    readdex.analyseTypeStrings();
 
     return 0;
 }
