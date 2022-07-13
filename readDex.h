@@ -70,7 +70,17 @@ typedef struct _MethodIdsItem
     uint32_t name_idx;				// 3. 该method名称    String_Ids index
 }MethodIdsItem,*PMethodIdsItem;
 
-
+// Raw class_def_item.
+struct ClassDef {
+    uint32_t class_idx_;        // 1. 必须是class类型值 是 type_ids index
+    uint32_t access_flags_;      // 2. 描述 class 的访问类型,诸如 public、 final、 static 等.  直接调用系统解析函数 art::PrettyJavaAccessFlags(uint32_t access_flags) android-11.0.0_r46/art/libdexfile/dex/modifiers.cc
+    uint32_t superclass_idx_;   // 3. 索引到superclass 是 type_ids index
+    uint32_t interfaces_off_;   // 4. 值为偏移地址,指向 class 的 interfaces,被指向的数据结构为 type_list.  class 若没有 interfaces,值为0.
+    uint32_t source_file_idx_;   // 5. 表示源代码文件的信息，值是 string_ ids 的一个 index。若此项信息缺失，此项值赋值为 NO_INDEX=0xFFFF FFFF
+    uint32_t annotations_off_;  // 6. 类的注释信息 位置在data区 值为 annotations_direcotry_item 若没有则为0
+    uint32_t class_data_off_;   // 7. 内容指向该class 用到的数据 位置在data区 格式为 class_data_item 没有为0  内容很多 详细描述该 class 的 field、 method、 method 里的执行代码等信息
+    uint32_t static_values_off_;// 8. 偏移地址,指向 data 区里的一个列表（list),格式为 encoded_array_item. 若没有为0.
+};
 
 
 class readDex {
