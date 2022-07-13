@@ -24,6 +24,7 @@ int main(int argc , char * argv[]){
     readdex.analyseStrings();
     readdex.analyseTypeStrings();
     readdex.analyseProtoIds();
-
+    readdex.analyseFieldIds();
+    readdex.analyseMethodIds();
     return 0;
 }

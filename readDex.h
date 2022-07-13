@@ -16,7 +16,7 @@ using namespace std;
 
 // 以下结构体来源于 dex_file.h  源码 android-11.0.0_r46/art/libdexfile/dex/dex_file.h
 // 其它结构体位于 android-11.0.0_r46/art/libdexfile/dex/dex_file_structs.h 不同版本存在差异 可通过一些关键字全局搜索
-
+// 官方文档 https://source.android.com/devices/tech/dalvik/dex-format  其实挺全 但是相对散乱
 // 文件头结构体
 static constexpr size_t kSha1DigestSize = 20;
 typedef struct _DexHeader {
@@ -35,7 +35,7 @@ typedef struct _DexHeader {
     uint32_t type_ids_off_ = 0;     // 13. 偏移 比如类类型,基本类型等信息
     uint32_t proto_ids_size_ = 0;   // 14. dex中元数据信息数据结构的个数
     uint32_t proto_ids_off_ = 0;    // 15. 偏移 比如方法的返回类型,参数类型等信息
-    uint32_t field_ids_size_ = 0;    // 16. dex中字段信息的数据结构大小
+    uint32_t field_ids_size_ = 0;    // 16. dex中字段信息的 数据结构 个数
     uint32_t field_ids_off_ = 0;     // 17. 偏移
     uint32_t method_ids_size_ = 0;  // 18. dex中方法信息数据结构的大小
     uint32_t method_ids_off_ = 0;   // 29. 偏移
@@ -45,7 +45,7 @@ typedef struct _DexHeader {
     uint32_t data_off_ = 0;         // 23. 偏移 比如定义的常量值等信息
 }DexHeader,*PDexHeader;
 
-// 方法原型
+// 方法参数返回值等结构体
 typedef struct _ProtoIdsItem
 {
     uint32_t shorty_idx = 0;			// 1. 索引string
@@ -53,14 +53,32 @@ typedef struct _ProtoIdsItem
     uint32_t parameters_off = 0;		// 3. 偏移 里面是 4字节个数 和 2字节下标数组  0 表示没有参数
 }ProtoIdsItem,*PProtoIdsItem;
 
-class readDex {
+// 字段属性结构体
+typedef struct _FiledIdsItem
+{
+    u_short class_idx;				// 1. 表示本Filed所属class类型 是 type_ids index
+    u_short type_idx;				// 2. 表示本Field的类型 是 type_ids index
+    uint32_t name_idx;				// 3. 表示本Field的名称 是 string index
 
+}FieldIdsItem,*PFieldIdsItem;
+
+// 方法信息结构体
+typedef struct _MethodIdsItem
+{
+    u_short class_idx;				// 1. 该method所属class类型 type_ids index
+    u_short proto_idx;				// 2. 该method的原型  Proto_Ids index
+    uint32_t name_idx;				// 3. 该method名称    String_Ids index
+}MethodIdsItem,*PMethodIdsItem;
+
+
+
+
+class readDex {
 public:
     readDex();
     readDex(string dexFilePath);
     bool openFile(string dexFilePath="resources/classes.dex");
     virtual ~readDex();
-
 private:
     // 文件路径
     string m_dexFilePath;
@@ -74,7 +92,10 @@ private:
     int * m_pTypeIds;
     // 方法原型索引首地址
     PProtoIdsItem m_pProtoIdsItem;
-
+    // 字段属性索引首地址
+    PFieldIdsItem m_pFieldIdsItem;
+    // 方法信息索引首地址
+    PMethodIdsItem m_pMethodIdsItem;
 public:
     // 分析文件头
     bool analyseDexHeader();
@@ -82,14 +103,18 @@ public:
     bool analyseStrings();
     // 分析所有类型字符串信息
     bool analyseTypeStrings();
-    // 分析方法原型
+    // 分析方法参数返回值名字信息
     bool analyseProtoIds();
+    // 分析所有字段信息
+    bool analyseFieldIds();
+    // 分析所有方法信息
+    bool analyseMethodIds();
 private:
     // 索引字符串偏移地址    默认隐藏中文+序号
     char *  indexString(int index,bool hide = true);
     // 索引类型字符串
     char * indexType(int index,bool hide = true);
-    // 索引方法原型
+    // 索引方法参数返回值名字
     char * indexProtoIds(int index,bool hide = true);
 };
 

@@ -48,6 +48,10 @@ bool readDex::openFile(std::string dexFilePath) {
     m_pTypeIds = (int *)(m_pDexHeader->type_ids_off_ + m_pBuff);
     // 方法原型首地址
     m_pProtoIdsItem = (PProtoIdsItem)(m_pDexHeader->proto_ids_off_ + m_pBuff);
+    // 字段属性首地址
+    m_pFieldIdsItem = (PFieldIdsItem)(m_pDexHeader->field_ids_off_ + m_pBuff);
+    // 方法信息首地址
+    m_pMethodIdsItem = (PMethodIdsItem)(m_pDexHeader->method_ids_off_ + m_pBuff);
     return false;
 }
 
@@ -100,6 +104,11 @@ bool readDex::analyseDexHeader() {
  * @param hide 方便其它函数索引不需要打印字符串时使用
  */
 char* readDex::indexString(int index,bool hide) {
+    if (index >m_pDexHeader->string_ids_size_){
+        printf("The index is beyond the maximum range.\n");
+        return "index fail!";
+    }
+
     // 单个字符在内存中的位置=单个字符串偏移[索引字符串] + 内存首地址
     char* stringoff = ( char*)(m_pBuff + m_pStringIds[index]);
     // 获取每一个字符串所占多少字节 第一个字节表示整个字符串所占多少字节
@@ -114,6 +123,10 @@ char* readDex::indexString(int index,bool hide) {
 }
 
 char *readDex::indexType(int index,bool hide) {
+    if (index >m_pDexHeader->type_ids_size_){
+        printf("The index is beyond the maximum range.\n");
+        return "index fail!";
+    }
     // 根据type偏移得到 字符串池下标 传入 字符串池 索引对应字符
     return indexString(m_pTypeIds[index],hide);
 }
@@ -147,6 +160,16 @@ bool readDex::analyseProtoIds() {
 
 char *readDex::indexProtoIds(int index,bool hide) {
 
+    /*
+	 * method:方法原型 string index
+	 * return:返回值类型 type index
+	 * parameters_off arg; 参数信息
+	 */
+
+    if (index >m_pDexHeader->proto_ids_size_){
+        printf("The index is beyond the maximum range.\n");
+        return "index fail!";
+    }
     string protoAll;
     // 解析返回值类型
    // cout << "Return type:";
@@ -172,6 +195,48 @@ char *readDex::indexProtoIds(int index,bool hide) {
         //cout << "VelueSize: null \n";
 
     return const_cast<char *>(protoAll.c_str());
+
+}
+
+bool readDex::analyseFieldIds() {
+    /*
+	 * // 1. 表示本Filed所属class类型 是 type_ids index
+	 * // 2. 表示本Field的类型 type_ids index
+	 * // 3. 表示本Field的名称 string_ids index
+	 */
+
+    for(uint32_t i=0;i<m_pDexHeader->field_ids_size_;i++)
+    {
+        cout << "第" << i << "个Filed" << endl;
+        cout << "本Field所属class:";
+        indexType(m_pFieldIdsItem[i].class_idx);
+        cout << "本Field的类型:";
+        indexType(m_pFieldIdsItem[i].type_idx);
+        cout << "本Field的名称:";
+        indexString(m_pFieldIdsItem[i].name_idx);
+
+    }
+
+    return true;
+}
+
+bool readDex::analyseMethodIds() {
+    /*
+	 *	class_idx;				// 1. 该method所属class类型 type_ids index
+	 * 	proto_idx;				// 2. 该method的原型  Proto_Ids index
+	 * 	name_idx;				// 3. 该method名称    String_Ids index
+	 */
+    for (uint32_t i = 0; i < m_pDexHeader->method_ids_size_; i++)
+    {
+        cout << "第" << i << "个Method" << endl;
+        cout << "该method所属class类型:";
+        indexType(m_pMethodIdsItem[i].class_idx);
+        cout << "该method的原型:";
+        indexProtoIds(m_pMethodIdsItem[i].proto_idx);
+        cout << "该method名称:";
+        indexString(m_pMethodIdsItem[i].name_idx);
+    }
+    return true;
 
 }
 
