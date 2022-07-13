@@ -20,11 +20,13 @@ int main(int argc , char * argv[]){
         dexFilePath=argv[1];
     }
     readDex readdex(dexFilePath);
-    readdex.analyseDexHeader();
-    readdex.analyseStrings();
-    readdex.analyseTypeStrings();
-    readdex.analyseProtoIds();
-    readdex.analyseFieldIds();
-    readdex.analyseMethodIds();
+//    readdex.analyseDexHeader();
+//    readdex.analyseStrings();
+//    readdex.analyseTypeStrings();
+//    readdex.analyseProtoIds();
+//    readdex.analyseFieldIds();
+//    readdex.analyseMethodIds();
+    readdex.indexClassDefs(0);
+    readdex.indexClassDefs(1);
     return 0;
 }
