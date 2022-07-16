@@ -10,7 +10,7 @@ include_directories(resources)
 add_executable(readdex
         sourceh/modifiers.cc
         sourceh/modifiers.h
-        resources/dex文件格式图.jpeg
+        myuleb128.h
         main.cpp
         readDex.cpp
         readDex.h)
