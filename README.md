@@ -2,8 +2,9 @@
 
 **创建时间：2022/7/10 22：00**
 
-**目的是学习 Android Dex文件格式 如有错误不影响理解dex格式 **
+**目的是学习,AndroidDex文件格式,如有错误不影响理解dex格式**
 
+**小demo不追求代码提交规范**
 ## 参考文档
 
 - [官方文档](https://source.android.com/devices/tech/dalvik/dex-format?hl=zh-cn#header-item)
