@@ -29,6 +29,6 @@ int main(int argc, char *argv[]) {
     readdex.analyseFieldIds();
     readdex.analyseMethodIds();
     readdex.analyseClassIds();
-    readdex.indexClassDefs(318);
+    //readdex.indexClassDefs(318);
     return 0;
 }

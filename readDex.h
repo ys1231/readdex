@@ -213,7 +213,7 @@ private:
 
     // 索引方法信息
     char *indexMethodIds(int index, bool hide = true);
-public:
+//public:
     // 索引类信息
     void indexClassDefs(int index, bool hide = true);
 
