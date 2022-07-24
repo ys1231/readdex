@@ -117,6 +117,7 @@ char *readDex::indexString(int index, bool hide) {
     char *stringoff = (char *) (m_pBuff + m_pStringIds[index]);
     // 获取每一个字符串所占多少字节 第一个字节表示整个字符串所占多少字节
     //const int size = *(stringoff);  每个字符串第一个字节为整个字符串长度 这里用特性\0结尾解析 获取字符串 -- but 以\0结尾原理 异常就完蛋
+    // 关于此格式 https://source.android.com/devices/tech/dalvik/dex-format?hl=zh-cn#string-data-item
     char *str = (char *) (stringoff + 1);
     // 隐藏对应的字符串 默认隐藏
     if (!hide)
