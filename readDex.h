@@ -17,7 +17,7 @@ using namespace std;
 //#include "sourceh/leb128.h"
 // 以下结构体来源于 dex_file.h  源码 android-11.0.0_r46/art/libdexfile/dex/dex_file.h
 // 其它结构体位于 android-11.0.0_r46/art/libdexfile/dex/dex_file_structs.h 不同版本存在差异 可通过一些关键字全局搜索
-// 官方文档 https://source.android.com/devices/tech/dalvik/dex-format  其实挺全 但是相对散乱
+// 官方文档 https://source.android.com/devices/tech/dalvik/dex-format  优先参考,真相是 别的资料找不到了才想起找官网
 // 文件头结构体
 static constexpr size_t kSha1DigestSize = 20;
 typedef struct _DexHeader {
