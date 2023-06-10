@@ -298,12 +298,12 @@ void readDex::indexClassDefs(int index, bool hide) {
         class_data_off_;   // 7. 内容指向该class 用到的数据 位置在data区 格式为 class_data_item 没有为0  内容很多 详细描述该 class 的 field、 method、 method 里的执行代码等信息
         static_values_off_;// 8. 偏移地址,指向 data 区里的一个列表（list),格式为 encoded_array_item. 若没有为0.
      */
-    cout << "\n------------------class_def_item-------------"<<endl;
+    cout << "\n------------------class_def_item-------------" << endl;
     cout << "class_idx: " << m_pClassDefsItem[index].class_idx_;
     indexType(m_pClassDefsItem[index].class_idx_);
 
     cout << "access_flags: " << m_pClassDefsItem[index].access_flags_
-         <<" "
+         << " "
          << art::PrettyJavaAccessFlags(m_pClassDefsItem[index].access_flags_) << endl;
 
     cout << "superclass_idx: " << m_pClassDefsItem[index].superclass_idx_;
@@ -339,33 +339,32 @@ void readDex::indexClassDefs(int index, bool hide) {
         encoded_method direct_methods[direct_methods_size];    // 定义的直接（static、private 或构造函数的任何一个）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。
         encoded_method virtual_methods[virtual_methods_size];    // 定义的虚拟（非 static、private 或构造函数）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。。
      */
-    uint8_t *addr = reinterpret_cast<uint8_t *>(m_pClassDefsItem[index].class_data_off_ + m_pBuff);
+    char *addr = reinterpret_cast<char *>(m_pClassDefsItem[index].class_data_off_ + m_pBuff);
     uint32_t offset = 0;
 
-    // TODO 实际调试发现 这里可能只需要1个字节  // 这里的字节数是观察010editor得出的
     uint32_t static_fields_size = 0;
-    DecodeUleb128(addr, static_fields_size, offset,1);
+    DecodeUleb128(addr, static_fields_size, offset);
 
     uint32_t instance_fields_size = 0;
-    DecodeUleb128(addr, instance_fields_size, offset,1);
+    DecodeUleb128(addr, instance_fields_size, offset);
 
     uint32_t direct_methods_size = 0;
-    DecodeUleb128(addr , direct_methods_size, offset,1);
+    DecodeUleb128(addr , direct_methods_size, offset);
 
-    uint32_t virtual_methods_size = 0; // 我测试的 dex 这个数据对应的字节 最后没有结尾标记0
-    DecodeUleb128(addr , virtual_methods_size, offset, 1);
+    uint32_t virtual_methods_size = 0;
+    DecodeUleb128(addr , virtual_methods_size, offset);
 
     // 在读取类的字段和方法时需要注意 第一次索引为对应 ids的偏移 但是 之后 就是前一个索引的差值
     // https://source.android.com/docs/core/dalvik/dex-format?hl=zh-cn#encoded-field-format
     // 原文 : 此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
     // 因此字段和方法都需要记录偏移
-    uint32_t iFieldIndex=0;
-    analyseEncodedField(addr, static_fields_size, offset,iFieldIndex);
-    analyseEncodedField(addr, instance_fields_size, offset,iFieldIndex);
+    uint32_t iFieldIndex = 0;
+    analyseEncodedField(addr, static_fields_size, offset, iFieldIndex);
+    analyseEncodedField(addr, instance_fields_size, offset, iFieldIndex);
 
-    uint32_t iMethodIndex=0;
-    annalyseEncodedMethod(addr, direct_methods_size, offset,iMethodIndex);
-    annalyseEncodedMethod(addr, virtual_methods_size, offset,iMethodIndex);
+    uint32_t iMethodIndex = 0;
+    annalyseEncodedMethod(addr, direct_methods_size, offset, iMethodIndex);
+    annalyseEncodedMethod(addr, virtual_methods_size, offset, iMethodIndex);
     cout << "static_values_off_: " << m_pClassDefsItem[index].static_values_off_ << endl;
 
 }
@@ -378,7 +377,7 @@ void readDex::indexClassDefs(int index, bool hide) {
  * @param mieldIndex  记录上一个索引
  * @return
  */
-uint32_t readDex::analyseEncodedField(const uint8_t *addr, uint32_t fieldSize, uint32_t &offset,uint32_t &mieldIndex) {
+uint32_t readDex::analyseEncodedField(const char *addr, uint32_t fieldSize, uint32_t &offset, uint32_t &mieldIndex) {
     /**
      * encoded_field 格式
        名称	格式 说明
@@ -387,24 +386,21 @@ uint32_t readDex::analyseEncodedField(const uint8_t *addr, uint32_t fieldSize, u
     */
     if (!fieldSize)
         return 0;
-    cout << "\n------------------encoded_field-------------"<<endl;
+    cout << "\n------------------encoded_field-------------" << endl;
+
     // class_data_item 是不对齐内存的 是一段连续内存
     // 解码后 的字段基于 field_ids 列表中的索引
     uint32_t index = 0;
-    // 需要解码的字节个数
-    uint8_t size = 3;
+
     for (int i = 0; i < fieldSize; ++i) {
-        // 这里的字节数是观察010editor得出的 首次是3 之后是1
-        if(i!=0)
-            size=1;
         // field_idx_diff
-        DecodeUleb128(addr, index, offset,size);
-        mieldIndex+=index;
+        DecodeUleb128(addr, index, offset);
+        mieldIndex += index;
         indexFieldIds(mieldIndex);
 
         // access_flags
-        DecodeUleb128(addr, index, offset,1);
-        cout << "access_flags: " << index <<" " << art::PrettyJavaAccessFlags(index) << endl;
+        DecodeUleb128(addr, index, offset);
+        cout << "access_flags: " << index << " " << art::PrettyJavaAccessFlags(index) << endl;
     }
     return offset;
 }
@@ -417,7 +413,7 @@ uint32_t readDex::analyseEncodedField(const uint8_t *addr, uint32_t fieldSize, u
  * @param methodIndex  记录上一个索引
  * @return
  */
-uint32_t readDex::annalyseEncodedMethod(const uint8_t *addr, uint32_t methodSize, uint32_t &offset,uint32_t methodIndex) {
+uint32_t readDex::annalyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex) {
     /**
      * encoded_method 格式
        名称	格式	说明
@@ -427,23 +423,21 @@ uint32_t readDex::annalyseEncodedMethod(const uint8_t *addr, uint32_t methodSize
      */
     if (!methodSize)
         return 0;
-    cout << "\n------------------encoded_method-------------"<<endl;
+    cout << "\n------------------encoded_method-------------" << endl;
     // class_data_item 是不对齐内存的 是一段连续内存
     // 解码后 的字段基于 field_ids 列表中的索引
     uint32_t index = 0;
     // 需要解码的字节个数
     uint8_t size = 3;
     for (int i = 0; i < methodSize; ++i) {
-        // 这里的字节数是观察010editor得出的 首次是3 之后是1
-        if(i!=0)
-            size=1;
+
         // method_idx_diff
-        DecodeUleb128(addr, index, offset,size);
-        methodIndex+=index;
+        DecodeUleb128(addr, index, offset);
+        methodIndex += index;
         indexMethodIds(methodIndex);
-        // access_flags 这里的字节数是观察010editor得出的 是3
-        DecodeUleb128(addr, index, offset,3);
-        cout << "access_flags: " << index <<" " << art::PrettyJavaAccessFlags(index) << endl;
+        // access_flags
+        DecodeUleb128(addr, index, offset);
+        cout << "access_flags: " << index << " " << art::PrettyJavaAccessFlags(index) << endl;
         // code_off
 
     }

@@ -113,11 +113,11 @@ typedef struct _encoded_method {
     uleb128 code_off;           // uleb128	从文件开头到此方法的代码结构的偏移量；如果此方法是 abstract 或 native，则该值为 0。偏移量应该是到 data 区段中某个位置的偏移量。数据格式由下文的“code_item”指定。
 } encoded_method, *Pencoded_method;
 
-typedef struct _try_item{
+typedef struct _try_item {
     uint start_addr;            // 此条目涵盖的代码块的起始地址。该地址是到第一个所涵盖指令开头部分的 16 位代码单元的计数。
     ushort insn_count;          // 此条目所覆盖的 16 位代码单元的数量。所涵盖（包含）的最后一个代码单元是 start_addr + insn_count - 1。
     ushort handler_off;         // 从关联的 encoded_catch_hander_list 开头部分到此条目的 encoded_catch_handler 的偏移量（以字节为单位）。此偏移量必须是到 encoded_catch_handler 开头部分的偏移量。
-}try_item,*Ptry_item;
+} try_item, *Ptry_item;
 
 typedef struct _code_item {
     ushort registers_size;  // 此代码使用的寄存器数量
@@ -126,11 +126,11 @@ typedef struct _code_item {
     ushort tries_size;      // 此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
     uint debug_info_off;    // 从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
     uint insns_size;        // 指令列表的大小（以 16 位代码单元为单位）
-    ushort  insns;          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
+    ushort insns;          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
     //ushort padding;         // （可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
     //try_item tries;         // （可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
     //encoded_catch_handler_list handlers; // （可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
-}code_item,*Pcode_item;
+} code_item, *Pcode_item;
 /**
  * encoded_catch_handler_list 格式
     名称	格式	说明
@@ -224,10 +224,10 @@ private:
     // 由于下面的结构大量的使用了uleb128 所以有关这个类型的解析统一在下面进行
 
     // 分析某一个类的字段
-    uint32_t analyseEncodedField(const uint8_t * addr,uint32_t fieldSize,uint32_t &moveBit,uint32_t &mieldIndex);
+    uint32_t analyseEncodedField(const char *addr, uint32_t fieldSize, uint32_t &moveBit, uint32_t &mieldIndex);
 
     // 分析某一个类的方法
-    uint32_t annalyseEncodedMethod(const uint8_t * addr,uint32_t methodSize,uint32_t &offset,uint32_t methodIndex);
+    uint32_t annalyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex);
 };
 
 

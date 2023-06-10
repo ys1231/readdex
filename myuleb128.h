@@ -34,46 +34,35 @@
  * @param offset 基于首地址还需要+之前读取的字节数 或者 是返回读取的字节数
  * @return
  */
-uint32_t DecodeUleb128(const uint8_t *addr, uint32_t &value, uint32_t &offset) {
-    const uint8_t *ptr = addr + offset;
-    uint32_t result = 0;
+uint32_t DecodeUleb128(const char* addr, uint32_t &value, uint32_t &offset) {
+    const char* ptr = addr + offset;
     int shift = 0;
-
+    uint8_t byte=0;
     do {
         // 在 C++ 中，后缀增加运算符（++）的优先级高于解引用运算符（*）。因此，*ptr++ 等价于 *(ptr++)。
-        uint8_t byte = *ptr++;
-        result |= (byte & 0x7F) << shift;
+        // 大坑 ptr++ 会导致 下面循环判断条件读取的是下一个字节的数据导致整个解析都会出问题
+        byte = *ptr++;
+        value |= (byte & 0x7F) << shift;
         shift += 7;
-    } while ((*ptr & 0x80));  // 继续读取，直到遇到最高位为0的字节
-
-    value = result;
+    } while ( byte & 0x80);  // 继续读取，直到遇到最高位为0的字节
     offset = ptr - addr;
-    return ptr - addr;  // 返回读取的字节数
+    return offset;  // 返回读取的字节数
 }
 
-/**
- *
- * @param addr
- * @param value
- * @param offset
- * @param size  TODO 根据外界传递的读取字节数来 这个数据来自 010editor (实际调试过程中发现 以uleb128的规则来读取数据有些是对不上的)
- * @return
- */
-uint32_t DecodeUleb128(const uint8_t *addr, uint32_t &value, uint32_t &offset,uint8_t size) {
-    const uint8_t *ptr = addr + offset;
-    uint32_t result = 0;
-    int shift = 0;
+uint32_t decodeULEB128(const char* ptr, uint32_t& result,uint32_t& offset) {
 
-    do {
-        // 在 C++ 中，后缀增加运算符（++）的优先级高于解引用运算符（*）。因此，*ptr++ 等价于 *(ptr++)。
-        uint8_t byte = *ptr++;
-        result |= (byte & 0x7F) << shift;
-        shift += 7;
-        --size;
-    } while (size);  // 继续读取，直到遇到最高位为0的字节
-
-    value = result;
-    offset = ptr - addr;
-    return ptr - addr;  // 返回读取的字节数
+    int bit = 0;
+    while (true) {
+        char byte = ptr[offset];
+        offset += 1;
+        result |= (byte & 0x7f) << bit;
+        bit += 7;
+        if ((byte & 0x80) == 0) {
+            break;
+        }
+    }
+    return result;
 }
+
+
 #endif //READDEX_MYULEB128_H
