@@ -9,6 +9,14 @@
  * 将多个字节的该7bits从低到高组合起来就是所表示的整数。
  * LEB128分成有符号数和无符号数两种分别进行处理，不过，只是在编码和解码过程有些不同。
  * 这里只关注无符号
+ *
+ * ULEB128 是一种针对非负整数的可变长度编码，它主要用于需要编码非负整数的地方，比如文件格式和通信协议等。ULEB128 的主要优点是它可以对较小的数字进行紧凑的编码，而对较大的数字则需要更多的字节。
+ * 下面，我们来看一个 ULEB128 编码的例子：
+ * 假设我们有一个数字 300，我们想要将它转换成 ULEB128 编码。首先，我们将它转换为二进制格式，得到 100101100。
+ * 然后，我们将这个二进制数字从右边开始分割成每组7位，如果最左边的一组不足7位，我们用0进行补足，得到 0000100 1011000。
+ * 对于每一组，我们都需要加上一个最高位（即第8位），用于表示是否还有更多的字节。如果有更多的字节，我们将最高位设置为1，否则设置为0。这样，我们得到 10000100 01011000，转换为十六进制就是 84 58。
+ * 所以，300 的 ULEB128 编码就是 84 58。
+ * 在解码的过程中，我们需要按照8位一组的方式来读取字节，并且将每个字节的低7位进行连接，同时，我们需要检查每个字节的最高位，如果最高位为1，那么就表示还有更多的字节，我们需要继续读取，否则表示这是最后一个字节，我们就可以停止读取了。
  */
 
 #ifndef READDEX_MYULEB128_H
@@ -18,84 +26,54 @@
 #include <cstdio>
 #include <cstdlib>
 
-typedef unsigned char uchar;
+// 更加优雅的读取
+/**
+ *
+ * @param addr 读取数据的首地址
+ * @param value 返回读取的数据
+ * @param offset 基于首地址还需要+之前读取的字节数 或者 是返回读取的字节数
+ * @return
+ */
+uint32_t DecodeUleb128(const uint8_t *addr, uint32_t &value, uint32_t &offset) {
+    const uint8_t *ptr = addr + offset;
+    uint32_t result = 0;
+    int shift = 0;
+
+    do {
+        // 在 C++ 中，后缀增加运算符（++）的优先级高于解引用运算符（*）。因此，*ptr++ 等价于 *(ptr++)。
+        uint8_t byte = *ptr++;
+        result |= (byte & 0x7F) << shift;
+        shift += 7;
+    } while ((*ptr & 0x80));  // 继续读取，直到遇到最高位为0的字节
+
+    value = result;
+    offset = ptr - addr;
+    return ptr - addr;  // 返回读取的字节数
+}
 
 /**
  *
- * @param addr 解析的首地址
- * @param size  返回可变类型值
- * @param moveBit  返回所占字节数 方便索引下一个数据使用
- * @param _moveBit 当前可变数据的起始偏移地址 默认为0
- * @return  执行成功或失败
+ * @param addr
+ * @param value
+ * @param offset
+ * @param size  TODO 根据外界传递的读取字节数来 这个数据来自 010editor (实际调试过程中发现 以uleb128的规则来读取数据有些是对不上的)
+ * @return
  */
-bool myDecodeUleb128(uchar *addr , int *size, unsigned char &moveBit, int _moveBit = 0) {
-    // uchar * _size = (uchar * )(size);
-    uchar *ptr = (addr + _moveBit);
-    uchar tmp2 = 0;
-    // 检测是否有下一个字节
-    if (((*ptr) & 0x80) == 0) {
-        *size = (*ptr) & 0x7F; // 0111 1111
-        moveBit += 1;
-        return true;
-    }
+uint32_t DecodeUleb128(const uint8_t *addr, uint32_t &value, uint32_t &offset,uint8_t size) {
+    const uint8_t *ptr = addr + offset;
+    uint32_t result = 0;
+    int shift = 0;
 
-    *size = (*ptr) & 0x7F;
-    // 获取到完整的第一个字节 拼接到第8位
-    tmp2 = (*(ptr + 1)) & 0x1; // 0000 0001
-    *size |= tmp2 << (7); // 1000 0000
-    moveBit += 1;
-    // 1111 1111
-    // 已经拿到完整的一个字节
+    do {
+        // 在 C++ 中，后缀增加运算符（++）的优先级高于解引用运算符（*）。因此，*ptr++ 等价于 *(ptr++)。
+        uint8_t byte = *ptr++;
+        result |= (byte & 0x7F) << shift;
+        shift += 7;
+        --size;
+    } while (size);  // 继续读取，直到遇到最高位为0的字节
 
-    // 获取第二个字节
-    if (((*(ptr + 1)) & 0x80) == 0) {
-        tmp2 = (*(ptr + 1)) & 0x7E; // 0111 1110
-        *size |= tmp2 << (-1 + 8);  // 0001 1111 1000 0000
-        moveBit += 1;
-        return true;
-    }
-    // 第二个字节为第一位1 需要继续获取下一个
-    // 最高位置0 拿到中间6位
-    tmp2 = (*(ptr + 1)) & 0x7E;// 0111 1110
-    *size |= tmp2 << (-1 + 8); // 0011 1110 0000 0000
-    // 获取到完整的第二个字节 拼接到第14位
-    tmp2 = (*(ptr + 2)) & 0x3; // 0000 0011
-    *size |= tmp2 << (-2 + 16); // 1100 0000 0000 0000
-    moveBit += 1;
-    //                 1111 1111 1111 1111
-
-    // 获取第三个字节 末尾2位已使用
-    if (((*(ptr + 2)) & 0x80) == 0) {
-        // 直接赋值为0 并获取  0111 1100   A10 B11 C12 D 13 E14 F15
-        *size |= ((*ptr + 2) & 0x7C) << (-2 + 24);
-        moveBit += 1;
-        return true; // 直接赋值为0 并获取第一个字节值
-    }
-    *size |= ((*ptr + 2) & 0x7C) << (-2 + 24); //  0001 1111
-    // 获取到完整的第三个字节
-    tmp2 = (*(ptr + 3)) & 0x7;// 0000 0111
-    *size |= tmp2 << (-3 + 24);// 1110 0000
-    moveBit += 1;
-
-    // 获取第四个字节 末尾3位已使用
-    if (((*(ptr + 3)) & 0x80) == 0) {
-        // 0111 1000 78
-        *size |= ((*ptr + 3) & 0x78) << (-3 + 32); // 0000 1111
-        moveBit += 1;
-        return true; // 直接赋值为0 并获取第一个字节值
-    }
-    // 第二个字节为第一位1 需要继续获取下一个
-    *size |= ((*ptr + 3) & 0x78) << (-3 + 32); //
-    // 获取到完整的第四个字节
-    tmp2 = (*(ptr + 4)) & 0xF;// 0000 1111
-    *size |= tmp2 << (-4 + 24);// 0000 0000 1111
-    moveBit += 1;
-
-    if (((*(ptr + 4)) & 0x80) != 0)
-        return false;
-    else
-        return true;
+    value = result;
+    offset = ptr - addr;
+    return ptr - addr;  // 返回读取的字节数
 }
-
-
 #endif //READDEX_MYULEB128_H

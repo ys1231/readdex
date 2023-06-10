@@ -52,6 +52,10 @@ std::string PrettyJavaAccessFlags(uint32_t access_flags) {
   if ((access_flags & kAccSynchronized) != 0) {
     result += "synchronized ";
   }
+  // --------下面是 自己新增的
+  if ((access_flags & kAccConstructor) != 0) {
+      result += "constructor ";
+  }
   return result;
 }
 

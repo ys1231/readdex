@@ -68,9 +68,9 @@ typedef struct _MethodIdsItem {
     uint32_t name_idx;                // 3. 该method名称    String_Ids index
 } MethodIdsItem, *PMethodIdsItem;
 
-// Raw class_def_item.  由头文件指向的 class结构体
+//  class_def_item.  由头文件指向的 class结构体
 /** annotations_direcotry_item 注释暂时用不上 先不管了
- * class_annotations_off	uint	从文件开头到直接在该类上所做的注释的偏移量；如果该类没有任何直接注释，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“annotation_set_item”指定。
+class_annotations_off	uint	从文件开头到直接在该类上所做的注释的偏移量；如果该类没有任何直接注释，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“annotation_set_item”指定。
 fields_size	uint	此项所注释的字段数量
 annotated_methods_size	uint	此项所注释的方法数量
 annotated_parameters_size	uint	此项所注释的方法参数列表的数量
@@ -95,58 +95,60 @@ typedef struct _TypeList {
     ushort type_idx_list[];            // 2. 列表的元素  大坑 官方都说了是数组结果以结构体指针去访问 浪费了好长时间一直想不明白为什么报错,固化的思维要不得!
 } TypeList, *PTypeList;
 
-// 开始 最后一步解析 class_data_item 找到阿里的(https://developer.aliyun.com/article/182046)  不过 并没有帮助 自己写循环一个字节一个字节解析
-// class_data_item 结构体为不定长度
-//typedef u_char uleb128;
-//typedef struct encoded_field{};
-//typedef struct _ClassDataItem {
-//    uleb128 static_fields_size;        // 此项中定义的静态字段的数量
-//    uleb128 instance_fields_size;    // 此项中定义的实例字段的数量
-//    uleb128 direct_methods_size;    // 此项中定义的直接方法的数量
-//    uleb128 virtual_methods_size;   // 此项中定义的虚拟方法的数量
-//    encoded_field static_fields[static_fields_size];    // 定义的静态字段；以一系列编码元素的形式表示。这些字段必须按 field_idx 以升序进行排序。
-//    encoded_field instance_fields[instance_fields_size];    // 定义的实例字段；以一系列编码元素的形式表示。这些字段必须按 field_idx 以升序进行排序。
-//    encoded_method direct_methods[direct_methods_size];    // 定义的直接（static、private 或构造函数的任何一个）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。
-//    encoded_method virtual_methods[virtual_methods_size];    // 定义的虚拟（非 static、private 或构造函数）方法；以一系列编码元素的形式表示。此列表不得包括继承方法，除非被此项所表示的类覆盖。
-//    // 这些方法必须按 method_idx 以升序进行排序。 虚拟方法的 method_idx 不得与任何直接方法相同。
-//};
-
 /**
- * encoded_field 格式
-名称	格式	说明
-field_idx_diff	uleb128	此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
-access_flags	uleb128	字段的访问标记（public、final 等）。如需了解详情，请参阅“access_flags 定义”。
+    class_data_item
+    开始 最后一步解析 class_data_item
+    class_data_item 结构体为不定长度  自己定义为固定长度方便使用
  */
-/**
- *
- * encoded_method 格式
-名称	格式	说明
-method_idx_diff	uleb128	此方法标识（包括名称和描述符）的 method_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
-access_flags	uleb128	方法的访问标记（public、final等）。如需了解详情，请参阅“access_flags 定义”。
-code_off	uleb128	从文件开头到此方法的代码结构的偏移量；如果此方法是 abstract 或 native，则该值为 0。偏移量应该是到 data 区段中某个位置的偏移量。数据格式由下文的“code_item”指定。
+// 下面ClassDataItem 所需要用到的一些结构体
+typedef u_char uleb128;
+typedef struct _encoded_field {
+    uleb128 field_idx_diff;     // uleb128	此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
+    uleb128 access_flags;       // uleb128	字段的访问标记（public、final 等）。如需了解详情，请参阅“access_flags 定义”。
+} encoded_field, *Pencoded_field;
 
- */
+typedef struct _encoded_method {
+    uleb128 method_idx_diff;    // uleb128	此方法标识（包括名称和描述符）的 method_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
+    uleb128 access_flags;       // uleb128	方法的访问标记（public、final等）。如需了解详情，请参阅“access_flags 定义”。
+    uleb128 code_off;           // uleb128	从文件开头到此方法的代码结构的偏移量；如果此方法是 abstract 或 native，则该值为 0。偏移量应该是到 data 区段中某个位置的偏移量。数据格式由下文的“code_item”指定。
+} encoded_method, *Pencoded_method;
 
+typedef struct _try_item{
+    uint start_addr;            // 此条目涵盖的代码块的起始地址。该地址是到第一个所涵盖指令开头部分的 16 位代码单元的计数。
+    ushort insn_count;          // 此条目所覆盖的 16 位代码单元的数量。所涵盖（包含）的最后一个代码单元是 start_addr + insn_count - 1。
+    ushort handler_off;         // 从关联的 encoded_catch_hander_list 开头部分到此条目的 encoded_catch_handler 的偏移量（以字节为单位）。此偏移量必须是到 encoded_catch_handler 开头部分的偏移量。
+}try_item,*Ptry_item;
+
+typedef struct _code_item {
+    ushort registers_size;  // 此代码使用的寄存器数量
+    ushort ins_size;        // 此代码所用方法的传入参数的字数
+    ushort outs_size;       // 此代码进行方法调用所需的传出参数空间的字数
+    ushort tries_size;      // 此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
+    uint debug_info_off;    // 从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
+    uint insns_size;        // 指令列表的大小（以 16 位代码单元为单位）
+    ushort  insns;          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
+    //ushort padding;         // （可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
+    //try_item tries;         // （可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
+    //encoded_catch_handler_list handlers; // （可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
+}code_item,*Pcode_item;
 /**
- * code_item
-引用自 encoded_method
-出现在数据区段中
-对齐：4 个字节
-名称	格式	说明
-registers_size	ushort	此代码使用的寄存器数量
-ins_size	ushort	此代码所用方法的传入参数的字数
-outs_size	ushort	此代码进行方法调用所需的传出参数空间的字数
-tries_size	ushort	此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
-debug_info_off	uint	从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
-insns_size	uint	指令列表的大小（以 16 位代码单元为单位）
-insns	ushort[insns_size]	字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
-padding	ushort（可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
-tries	try_item[tries_size]（可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
-handlers	encoded_catch_handler_list（可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
+ * encoded_catch_handler_list 格式
+    名称	格式	说明
+    size	uleb128	列表的大小（以条目数表示）
+    list	encoded_catch_handler[handlers_size]	处理程序列表的实际列表，直接表示（不作为偏移量）并依序串联
  */
 
-
-
+typedef struct _ClassDataItem {
+    uleb128 static_fields_size;        // 此项中定义的静态字段的数量
+    uleb128 instance_fields_size;    // 此项中定义的实例字段的数量
+    uleb128 direct_methods_size;    // 此项中定义的直接方法的数量
+    uleb128 virtual_methods_size;   // 此项中定义的虚拟方法的数量
+    encoded_field static_fields;//[static_fields_size];    // 定义的静态字段；以一系列编码元素的形式表示。这些字段必须按 field_idx 以升序进行排序。
+    encoded_field instance_fields;//[instance_fields_size];    // 定义的实例字段；以一系列编码元素的形式表示。这些字段必须按 field_idx 以升序进行排序。
+    encoded_method direct_methods;//[direct_methods_size];    // 定义的直接（static、private 或构造函数的任何一个）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。
+    encoded_method virtual_methods;//[virtual_methods_size];    // 定义的虚拟（非 static、private 或构造函数）方法；以一系列编码元素的形式表示。此列表不得包括继承方法，除非被此项所表示的类覆盖。
+    // 这些方法必须按 method_idx 以升序进行排序。 虚拟方法的 method_idx 不得与任何直接方法相同。
+};
 
 class readDex {
 public:
@@ -198,6 +200,7 @@ public:
 
     // 分析所有类信息
     bool analyseClassIds();
+
 private:
     // 索引字符串偏移地址    默认隐藏中文+序号
     char *indexString(int index, bool hide = true);
@@ -213,10 +216,18 @@ private:
 
     // 索引方法信息
     char *indexMethodIds(int index, bool hide = true);
-//public:
+
     // 索引类信息
     void indexClassDefs(int index, bool hide = true);
 
+private:
+    // 由于下面的结构大量的使用了uleb128 所以有关这个类型的解析统一在下面进行
+
+    // 分析某一个类的字段
+    uint32_t analyseEncodedField(const uint8_t * addr,uint32_t fieldSize,uint32_t &moveBit,uint32_t &mieldIndex);
+
+    // 分析某一个类的方法
+    uint32_t annalyseEncodedMethod(const uint8_t * addr,uint32_t methodSize,uint32_t &offset,uint32_t methodIndex);
 };
 
 

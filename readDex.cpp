@@ -110,7 +110,7 @@ bool readDex::analyseDexHeader() {
 char *readDex::indexString(int index, bool hide) {
     if (index > m_pDexHeader->string_ids_size_) {
         printf("The index is beyond the maximum range.\n");
-        return (char *)"index fail!";
+        return (char *) "index fail!";
     }
 
     // 单个字符在内存中的位置=单个字符串偏移[索引字符串] + 内存首地址
@@ -130,7 +130,7 @@ char *readDex::indexString(int index, bool hide) {
 char *readDex::indexType(int index, bool hide) {
     if (index > m_pDexHeader->type_ids_size_) {
         printf("The index is beyond the maximum range.\n");
-        return (char *)"index fail!";
+        return (char *) "index fail!";
     }
     // 根据type偏移得到 字符串池下标 传入 字符串池 索引对应字符
     return indexString(m_pTypeIds[index], hide);
@@ -173,7 +173,7 @@ char *readDex::indexProtoIds(int index, bool hide) {
 
     if (index > m_pDexHeader->proto_ids_size_) {
         printf("The index is beyond the maximum range.\n");
-        return (char *)"index fail!";
+        return (char *) "index fail!";
     }
     string protoAll;
     // 解析返回值类型
@@ -204,6 +204,10 @@ char *readDex::indexProtoIds(int index, bool hide) {
 }
 
 char *readDex::indexFieldIds(int index, bool hide) {
+
+    if (index > m_pDexHeader->field_ids_size_) {
+        return nullptr;
+    }
     string tmp;
     cout << "本Field所属class:";
     tmp += "本Field所属class: ";
@@ -218,6 +222,10 @@ char *readDex::indexFieldIds(int index, bool hide) {
 }
 
 char *readDex::indexMethodIds(int index, bool hide) {
+
+    if (index > m_pDexHeader->method_ids_size_) {
+        return nullptr;
+    }
     string tmp;
     cout << "该method所属class类型:";
     tmp += " 该method所属class类型: ";
@@ -247,7 +255,6 @@ bool readDex::analyseFieldIds() {
         indexType(m_pFieldIdsItem[i].type_idx);
         cout << "本Field的名称:";
         indexString(m_pFieldIdsItem[i].name_idx);
-
     }
 
     return true;
@@ -272,9 +279,16 @@ bool readDex::analyseMethodIds() {
 
 }
 
+bool readDex::analyseClassIds() {
+    // TODO 可直接调用 indexClassDefs 根据下标索引
+    indexClassDefs(1964);
+    return false;
+}
+
 void readDex::indexClassDefs(int index, bool hide) {
 
     /**
+     * class_def_item
      *  class_idx_;        // 1. 必须是class类型值 是 type_ids index
         access_flags_;      // 2. 描述 class 的访问类型,诸如 public、 final、 static 等.  直接调用系统解析函数 art::PrettyJavaAccessFlags(uint32_t access_flags) android-11.0.0_r46/art/libdexfile/dex/modifiers.cc
         superclass_idx_;   // 3. 索引到superclass 是 type_ids index
@@ -284,11 +298,12 @@ void readDex::indexClassDefs(int index, bool hide) {
         class_data_off_;   // 7. 内容指向该class 用到的数据 位置在data区 格式为 class_data_item 没有为0  内容很多 详细描述该 class 的 field、 method、 method 里的执行代码等信息
         static_values_off_;// 8. 偏移地址,指向 data 区里的一个列表（list),格式为 encoded_array_item. 若没有为0.
      */
-
+    cout << "\n------------------class_def_item-------------"<<endl;
     cout << "class_idx: " << m_pClassDefsItem[index].class_idx_;
     indexType(m_pClassDefsItem[index].class_idx_);
 
     cout << "access_flags: " << m_pClassDefsItem[index].access_flags_
+         <<" "
          << art::PrettyJavaAccessFlags(m_pClassDefsItem[index].access_flags_) << endl;
 
     cout << "superclass_idx: " << m_pClassDefsItem[index].superclass_idx_;
@@ -310,8 +325,11 @@ void readDex::indexClassDefs(int index, bool hide) {
     //  annotations_off_ 好像暂时用不到
     cout << "annotations_off: " << m_pClassDefsItem[index].annotations_off_ << endl;
 
+    // 关键数据 类的字段 方法信息都在这里
     cout << "class_data_off: " << m_pClassDefsItem[index].class_data_off_;
+
     /**
+     * class_data_item 引用自 class_def_item 出现在 data 区段中 对齐：无（字节对齐
         uleb128 static_fields_size;        // 此项中定义的静态字段的数量
         uleb128 instance_fields_size;    // 此项中定义的实例字段的数量
         uleb128 direct_methods_size;    // 此项中定义的直接方法的数量
@@ -321,27 +339,118 @@ void readDex::indexClassDefs(int index, bool hide) {
         encoded_method direct_methods[direct_methods_size];    // 定义的直接（static、private 或构造函数的任何一个）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。
         encoded_method virtual_methods[virtual_methods_size];    // 定义的虚拟（非 static、private 或构造函数）方法；以一系列编码元素的形式表示。这些方法必须按 method_idx 以升序进行排序。。
      */
-    uchar * addr = (reinterpret_cast<uchar *>(m_pClassDefsItem[index].class_data_off_ + m_pBuff));
-    unsigned char moveBit=0;
-    int static_fields_size =0;
-    myDecodeUleb128(addr,&static_fields_size,moveBit);
-    int instance_fields_size =  0 ;
-    myDecodeUleb128(addr,&instance_fields_size,moveBit,moveBit);
-    int direct_methods_size =0;
-    myDecodeUleb128(addr,&direct_methods_size,moveBit,moveBit);
-    int virtual_methods_size = 0;
-    myDecodeUleb128(addr,&virtual_methods_size,moveBit,moveBit);
-    // TODO 获取到参数后索引对应index 即可
-    // indexFieldIds
-    // indexMethodIds
-    cout << "static_values_off_: " << m_pClassDefsItem[index].static_values_off_<<endl;
+    uint8_t *addr = reinterpret_cast<uint8_t *>(m_pClassDefsItem[index].class_data_off_ + m_pBuff);
+    uint32_t offset = 0;
+
+    // TODO 实际调试发现 这里可能只需要1个字节  // 这里的字节数是观察010editor得出的
+    uint32_t static_fields_size = 0;
+    DecodeUleb128(addr, static_fields_size, offset,1);
+
+    uint32_t instance_fields_size = 0;
+    DecodeUleb128(addr, instance_fields_size, offset,1);
+
+    uint32_t direct_methods_size = 0;
+    DecodeUleb128(addr , direct_methods_size, offset,1);
+
+    uint32_t virtual_methods_size = 0; // 我测试的 dex 这个数据对应的字节 最后没有结尾标记0
+    DecodeUleb128(addr , virtual_methods_size, offset, 1);
+
+    // 在读取类的字段和方法时需要注意 第一次索引为对应 ids的偏移 但是 之后 就是前一个索引的差值
+    // https://source.android.com/docs/core/dalvik/dex-format?hl=zh-cn#encoded-field-format
+    // 原文 : 此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
+    // 因此字段和方法都需要记录偏移
+    uint32_t iFieldIndex=0;
+    analyseEncodedField(addr, static_fields_size, offset,iFieldIndex);
+    analyseEncodedField(addr, instance_fields_size, offset,iFieldIndex);
+
+    uint32_t iMethodIndex=0;
+    annalyseEncodedMethod(addr, direct_methods_size, offset,iMethodIndex);
+    annalyseEncodedMethod(addr, virtual_methods_size, offset,iMethodIndex);
+    cout << "static_values_off_: " << m_pClassDefsItem[index].static_values_off_ << endl;
 
 }
 
-bool readDex::analyseClassIds() {
- // TODO 可直接调用 indexClassDefs 根据下标索引
-    return false;
+/**
+ *
+ * @param addr 某个类的所有字段的结构体数组的起始位置
+ * @param fieldSize 实际的字段个数
+ * @param offset  当前可变数据的起始偏移地址
+ * @param mieldIndex  记录上一个索引
+ * @return
+ */
+uint32_t readDex::analyseEncodedField(const uint8_t *addr, uint32_t fieldSize, uint32_t &offset,uint32_t &mieldIndex) {
+    /**
+     * encoded_field 格式
+       名称	格式 说明
+       field_idx_diff	uleb128	此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
+       access_flags	uleb128	字段的访问标志（public、final 等）。如需了解详情，请参阅“access_flags 定义”。
+    */
+    if (!fieldSize)
+        return 0;
+    cout << "\n------------------encoded_field-------------"<<endl;
+    // class_data_item 是不对齐内存的 是一段连续内存
+    // 解码后 的字段基于 field_ids 列表中的索引
+    uint32_t index = 0;
+    // 需要解码的字节个数
+    uint8_t size = 3;
+    for (int i = 0; i < fieldSize; ++i) {
+        // 这里的字节数是观察010editor得出的 首次是3 之后是1
+        if(i!=0)
+            size=1;
+        // field_idx_diff
+        DecodeUleb128(addr, index, offset,size);
+        mieldIndex+=index;
+        indexFieldIds(mieldIndex);
+
+        // access_flags
+        DecodeUleb128(addr, index, offset,1);
+        cout << "access_flags: " << index <<" " << art::PrettyJavaAccessFlags(index) << endl;
+    }
+    return offset;
 }
+
+/**
+ *
+ * @param addr 某个类的所有方法的结构体数组的起始位置
+ * @param fieldSize 实际的方法个数
+ * @param offset  当前可变数据的起始偏移地址
+ * @param methodIndex  记录上一个索引
+ * @return
+ */
+uint32_t readDex::annalyseEncodedMethod(const uint8_t *addr, uint32_t methodSize, uint32_t &offset,uint32_t methodIndex) {
+    /**
+     * encoded_method 格式
+       名称	格式	说明
+       method_idx_diff	uleb128	此方法标识（包括名称和描述符）的 method_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
+       access_flags	uleb128	方法的访问标志（public、final 等）。如需了解详情，请参阅“access_flags 定义”。
+       code_off	uleb128	从文件开头到此方法的代码结构的偏移量；如果此方法是 abstract 或 native，则该值为 0。偏移量应该是到 data 区段中某个位置的偏移量。数据格式由下文的“code_item”指定。
+     */
+    if (!methodSize)
+        return 0;
+    cout << "\n------------------encoded_method-------------"<<endl;
+    // class_data_item 是不对齐内存的 是一段连续内存
+    // 解码后 的字段基于 field_ids 列表中的索引
+    uint32_t index = 0;
+    // 需要解码的字节个数
+    uint8_t size = 3;
+    for (int i = 0; i < methodSize; ++i) {
+        // 这里的字节数是观察010editor得出的 首次是3 之后是1
+        if(i!=0)
+            size=1;
+        // method_idx_diff
+        DecodeUleb128(addr, index, offset,size);
+        methodIndex+=index;
+        indexMethodIds(methodIndex);
+        // access_flags 这里的字节数是观察010editor得出的 是3
+        DecodeUleb128(addr, index, offset,3);
+        cout << "access_flags: " << index <<" " << art::PrettyJavaAccessFlags(index) << endl;
+        // code_off
+
+    }
+    return offset;
+}
+
+
 
 
 
