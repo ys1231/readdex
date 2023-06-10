@@ -69,21 +69,12 @@ typedef struct _MethodIdsItem {
 } MethodIdsItem, *PMethodIdsItem;
 
 //  class_def_item.  由头文件指向的 class结构体
-/** annotations_direcotry_item 注释暂时用不上 先不管了
-class_annotations_off	uint	从文件开头到直接在该类上所做的注释的偏移量；如果该类没有任何直接注释，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“annotation_set_item”指定。
-fields_size	uint	此项所注释的字段数量
-annotated_methods_size	uint	此项所注释的方法数量
-annotated_parameters_size	uint	此项所注释的方法参数列表的数量
-field_annotations	field_annotation[fields_size]（可选）	所关联字段的注释列表。该列表中的元素必须按 field_idx 以升序进行排序。
-method_annotations	method_annotation[methods_size]（可选）	所关联方法的注释列表。该列表中的元素必须按 method_idx 以升序进行排序。
-parameter_annotations	parameter_annotation[parameters_size]（可选）	所关联方法参数的注释列表。该列表中的元素必须按 method_idx 以升序进行排序。
- */
 typedef struct _ClassDefsItem {
     uint32_t class_idx_;        // 1. 必须是class类型值 是 type_ids index
-    uint32_t access_flags_;      // 2. 描述 class 的访问类型,诸如 public、 final、 static 等.  直接调用系统解析函数 art::PrettyJavaAccessFlags(uint32_t access_flags) android-11.0.0_r46/art/libdexfile/dex/modifiers.cc
+    uint32_t access_flags_;     // 2. 描述 class 的访问类型,诸如 public、 final、 static 等.  直接调用系统解析函数 art::PrettyJavaAccessFlags(uint32_t access_flags) android-11.0.0_r46/art/libdexfile/dex/modifiers.cc
     uint32_t superclass_idx_;   // 3. 索引到superclass 是 type_ids index
     uint32_t interfaces_off_;   // 4. 值为偏移地址,指向 class 的 interfaces,被指向的数据结构为 type_list.  class 若没有 interfaces,值为0.
-    uint32_t source_file_idx_;   // 5. 表示源代码文件名，值是 string_ ids 的一个 index。若此项信息缺失，此项值赋值为 NO_INDEX=0xFFFF FFFF
+    uint32_t source_file_idx_;  // 5. 表示源代码文件名，值是 string_ ids 的一个 index。若此项信息缺失，此项值赋值为 NO_INDEX=0xFFFF FFFF
     uint32_t annotations_off_;  // 6. 类的注释信息 位置在data区 值为 annotations_direcotry_item 若没有则为0
     uint32_t class_data_off_;   // 7. 内容指向该class 用到的数据 位置在data区 格式为 class_data_item 没有为0  内容很多 详细描述该 class 的 field、 method、 method 里的执行代码等信息
     uint32_t static_values_off_;// 8. 偏移地址,指向 data 区里的一个列表（list),格式为 encoded_array_item. 若没有为0.
@@ -118,25 +109,31 @@ typedef struct _try_item {
     ushort insn_count;          // 此条目所覆盖的 16 位代码单元的数量。所涵盖（包含）的最后一个代码单元是 start_addr + insn_count - 1。
     ushort handler_off;         // 从关联的 encoded_catch_hander_list 开头部分到此条目的 encoded_catch_handler 的偏移量（以字节为单位）。此偏移量必须是到 encoded_catch_handler 开头部分的偏移量。
 } try_item, *Ptry_item;
-
-typedef struct _code_item {
-    ushort registers_size;  // 此代码使用的寄存器数量
-    ushort ins_size;        // 此代码所用方法的传入参数的字数
-    ushort outs_size;       // 此代码进行方法调用所需的传出参数空间的字数
-    ushort tries_size;      // 此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
-    uint debug_info_off;    // 从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
-    uint insns_size;        // 指令列表的大小（以 16 位代码单元为单位）
-    ushort insns;          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
-    //ushort padding;         // （可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
-    //try_item tries;         // （可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
-    //encoded_catch_handler_list handlers; // （可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
-} code_item, *Pcode_item;
 /**
  * encoded_catch_handler_list 格式
     名称	格式	说明
     size	uleb128	列表的大小（以条目数表示）
     list	encoded_catch_handler[handlers_size]	处理程序列表的实际列表，直接表示（不作为偏移量）并依序串联
  */
+ typedef struct _encoded_catch_handler_list{
+     uleb128 size;
+//     encoded_catch_handler *list;
+ };
+
+typedef struct _code_item {
+    ushort registers_size;  // 此方法使用的寄存器数量
+    ushort ins_size;        // 此方法所用方法的传入参数的字数
+    ushort outs_size;       // 此方法进行方法调用所需的传出参数空间的字数
+    ushort tries_size;      // 此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
+    uint debug_info_off;    // 从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
+    uint insns_size;        // 指令列表的大小（以 16 位代码单元为单位）
+    ushort insns[];          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
+    //ushort padding;         // （可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
+    //try_item *tries;         // （可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
+    //encoded_catch_handler_list handlers; // （可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
+    // 最后这个涉及结构太多先不管了.
+} Code_item, *PCode_item;
+
 
 typedef struct _ClassDataItem {
     uleb128 static_fields_size;        // 此项中定义的静态字段的数量
@@ -220,6 +217,8 @@ private:
     // 索引类信息
     void indexClassDefs(int index, bool hide = true);
 
+    // 索引类解析方法时的方法名称
+    string indexMethodName(int index);
 private:
     // 由于下面的结构大量的使用了uleb128 所以有关这个类型的解析统一在下面进行
 
@@ -227,7 +226,10 @@ private:
     uint32_t analyseEncodedField(const char *addr, uint32_t fieldSize, uint32_t &moveBit, uint32_t &mieldIndex);
 
     // 分析某一个类的方法
-    uint32_t annalyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex);
+    uint32_t analyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex);
+
+    // 分析某个方法的 code_item 实际方法的opencode 就在这里
+    void analyseCodeItem(string methodName,PCode_item pcodeitem);
 };
 
 

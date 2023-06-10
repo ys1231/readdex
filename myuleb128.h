@@ -38,6 +38,7 @@ uint32_t DecodeUleb128(const char* addr, uint32_t &value, uint32_t &offset) {
     const char* ptr = addr + offset;
     int shift = 0;
     uint8_t byte=0;
+    value=0;
     do {
         // 在 C++ 中，后缀增加运算符（++）的优先级高于解引用运算符（*）。因此，*ptr++ 等价于 *(ptr++)。
         // 大坑 ptr++ 会导致 下面循环判断条件读取的是下一个字节的数据导致整个解析都会出问题

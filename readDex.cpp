@@ -209,15 +209,13 @@ char *readDex::indexFieldIds(int index, bool hide) {
         return nullptr;
     }
     string tmp;
-    cout << "本Field所属class:";
     tmp += "本Field所属class: ";
     tmp += indexType(m_pFieldIdsItem[index].class_idx);
-    cout << "本Field的类型:";
     tmp += " 本Field的类型: ";
     tmp += indexType(m_pFieldIdsItem[index].type_idx);
-    cout << "本Field的名称:";
     tmp += " 本Field的名称: ";
     tmp += indexString(m_pFieldIdsItem[index].name_idx);
+    cout << tmp << endl;
     return const_cast<char *>(tmp.c_str());
 }
 
@@ -227,17 +225,18 @@ char *readDex::indexMethodIds(int index, bool hide) {
         return nullptr;
     }
     string tmp;
-    cout << "该method所属class类型:";
     tmp += " 该method所属class类型: ";
     tmp += indexType(m_pMethodIdsItem[index].class_idx);
-    cout << "该method的原型:";
     tmp += " 该method的原型: ";
     tmp += indexProtoIds(m_pMethodIdsItem[index].proto_idx);
-    cout << "该method名称:";
     tmp += " 该method名称: ";
     tmp += indexString(m_pMethodIdsItem[index].name_idx);
-
+    cout << tmp;
     return const_cast<char *>(tmp.c_str());
+}
+
+string readDex::indexMethodName(int index) {
+    return indexString(m_pMethodIdsItem[index].name_idx);
 }
 
 bool readDex::analyseFieldIds() {
@@ -349,32 +348,33 @@ void readDex::indexClassDefs(int index, bool hide) {
     DecodeUleb128(addr, instance_fields_size, offset);
 
     uint32_t direct_methods_size = 0;
-    DecodeUleb128(addr , direct_methods_size, offset);
+    DecodeUleb128(addr, direct_methods_size, offset);
 
     uint32_t virtual_methods_size = 0;
-    DecodeUleb128(addr , virtual_methods_size, offset);
+    DecodeUleb128(addr, virtual_methods_size, offset);
 
     // 在读取类的字段和方法时需要注意 第一次索引为对应 ids的偏移 但是 之后 就是前一个索引的差值
     // https://source.android.com/docs/core/dalvik/dex-format?hl=zh-cn#encoded-field-format
     // 原文 : 此字段标识（包括名称和描述符）的 field_ids 列表中的索引；它会表示为与列表中前一个元素的索引之间的差值。列表中第一个元素的索引则直接表示出来。
     // 因此字段和方法都需要记录偏移
+    // 下面4个方法一个都不能少
     uint32_t iFieldIndex = 0;
     analyseEncodedField(addr, static_fields_size, offset, iFieldIndex);
     analyseEncodedField(addr, instance_fields_size, offset, iFieldIndex);
 
     uint32_t iMethodIndex = 0;
-    annalyseEncodedMethod(addr, direct_methods_size, offset, iMethodIndex);
-    annalyseEncodedMethod(addr, virtual_methods_size, offset, iMethodIndex);
+    analyseEncodedMethod(addr, direct_methods_size, offset, iMethodIndex);
+    analyseEncodedMethod(addr, virtual_methods_size, offset, iMethodIndex);
     cout << "static_values_off_: " << m_pClassDefsItem[index].static_values_off_ << endl;
 
 }
 
 /**
  *
- * @param addr 某个类的所有字段的结构体数组的起始位置
+ * @param addr 某个类的ClassDefsItem结构体的起始位置
  * @param fieldSize 实际的字段个数
  * @param offset  当前可变数据的起始偏移地址
- * @param mieldIndex  记录上一个索引
+ * @param mieldIndex  记录上一个字段的索引
  * @return
  */
 uint32_t readDex::analyseEncodedField(const char *addr, uint32_t fieldSize, uint32_t &offset, uint32_t &mieldIndex) {
@@ -407,13 +407,13 @@ uint32_t readDex::analyseEncodedField(const char *addr, uint32_t fieldSize, uint
 
 /**
  *
- * @param addr 某个类的所有方法的结构体数组的起始位置
+ * @param addr 某个类的ClassDefsItem结构体的起始位置
  * @param fieldSize 实际的方法个数
  * @param offset  当前可变数据的起始偏移地址
- * @param methodIndex  记录上一个索引
+ * @param methodIndex  记录上一个方法索引
  * @return
  */
-uint32_t readDex::annalyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex) {
+uint32_t readDex::analyseEncodedMethod(const char *addr, uint32_t methodSize, uint32_t &offset, uint32_t methodIndex) {
     /**
      * encoded_method 格式
        名称	格式	说明
@@ -429,19 +429,64 @@ uint32_t readDex::annalyseEncodedMethod(const char *addr, uint32_t methodSize, u
     uint32_t index = 0;
     // 需要解码的字节个数
     uint8_t size = 3;
+    //  临时保存方法名称
+    string sMethodName;
     for (int i = 0; i < methodSize; ++i) {
 
         // method_idx_diff
         DecodeUleb128(addr, index, offset);
         methodIndex += index;
         indexMethodIds(methodIndex);
+        sMethodName = indexMethodName(methodIndex);
+
         // access_flags
         DecodeUleb128(addr, index, offset);
         cout << "access_flags: " << index << " " << art::PrettyJavaAccessFlags(index) << endl;
+
         // code_off
+        DecodeUleb128(addr, index, offset);
+        PCode_item PCodeItem = (PCode_item) (index + m_pBuff);
+        analyseCodeItem(sMethodName,PCodeItem);
 
     }
     return offset;
+}
+
+/**
+ * @param pcodeitem 指向要解析的code_item指针
+ */
+void readDex::analyseCodeItem(string methodName, PCode_item pcodeitem) {
+    /**
+     * typedef struct _code_item {
+        ushort registers_size;  // 此方法使用的寄存器数量
+        ushort ins_size;        // 此方法传入参数的字数
+        ushort outs_size;       // 此方法进行方法调用所需的传出参数空间的字数
+        ushort tries_size;      // 此实例的 try_item 数量。如果此值为非零值，则这些项会显示为 insns 数组（正好位于此实例中 tries 的后面）。
+        uint debug_info_off;    // 从文件开头到此代码的调试信息（行号 + 局部变量信息）序列的偏移量；如果没有任何信息，则该值为 0。该偏移量（如果为非零值）应该是到 data 区段中某个位置的偏移量。数据格式由下文的“debug_info_item”指定。
+        uint insns_size;        // 指令列表的大小（以 16 位代码单元为单位）
+        ushort * insns;          // 字节码的实际数组。insns 数组中的代码格式由随附文档 Dalvik 字节码指定。请注意，尽管此项被定义为 ushort 的数组，但仍有一些内部结构倾向于采用四字节对齐方式。此外，如果此项恰好位于某个字节序交换文件中，则交换操作将只在单个 ushort 上进行，而不在较大的内部结构上进行。
+        ushort padding;         // （可选）= 0	使 tries 实现四字节对齐的两字节填充。只有 tries_size 为非零值且 insns_size 是奇数时，此元素才会存在。
+        try_item *tries;         // （可选）	用于表示在代码中捕获异常的位置以及如何对异常进行处理的数组。该数组的元素在范围内不得重叠，且数值地址按照从低到高的顺序排列。只有 tries_size 为非零值时，此元素才会存在。
+        //encoded_catch_handler_list handlers; // （可选）	用于表示“捕获类型列表和关联处理程序地址”的列表的字节。每个 try_item 都具有到此结构的分组偏移量。只有 tries_size 为非零值时，此元素才会存在。
+        // 最后这个涉及结构太多先不管了.
+    } Code_item, *PCode_item;
+     */
+    if (!pcodeitem)
+        return;
+    cout << "---------" << methodName << " code_item -----------"<<endl;
+    cout << "此方法使用的寄存器数量(registers_size): " << pcodeitem->registers_size << endl;
+    cout << "此方法的传入参数的字数(ins_size): " << pcodeitem->ins_size << endl;
+    cout << "此方法进行方法调用所需的传出参数空间的字数(outs_size): " << pcodeitem->outs_size << endl;
+    cout << "此实例的 try_item 数量(tries_size): " << pcodeitem->tries_size << endl;
+    // 暂不展开
+    cout << "从文件开头到此代码的调试信息(debug_info_off): " << pcodeitem->debug_info_off << endl;
+    cout << "指令列表的大小(insns_size): " << pcodeitem->insns_size << endl;
+    cout << "指令0x: ";
+    for (int i = 0; i < pcodeitem->insns_size; ++i) {
+        cout<< pcodeitem->insns[i] << " ";
+    }
+    cout << endl;
+
 }
 
 
