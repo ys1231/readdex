@@ -23,11 +23,11 @@ int main(int argc, char *argv[]) {
     }
     readDex readdex(dexFilePath);
     readdex.analyseDexHeader();
-//    readdex.analyseStrings();
-//    readdex.analyseTypeStrings();
-//    readdex.analyseProtoIds();
-//    readdex.analyseFieldIds();
-//    readdex.analyseMethodIds();
+    readdex.analyseStrings();
+    readdex.analyseTypeStrings();
+    readdex.analyseProtoIds();
+    readdex.analyseFieldIds();
+    readdex.analyseMethodIds();
     readdex.analyseClassIds();
 
     return 0;
