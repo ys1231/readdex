@@ -4,9 +4,9 @@ name: CMake on a single platform
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "iyue-test-actions" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "iyue-test-actions" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
