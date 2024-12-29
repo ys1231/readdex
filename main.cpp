@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < argc; ++i) {
         cout << "argv" << "[" << i << "]:" << argv[i] << endl;
     }
-    string dexFilePath = "./classes.dex";
+    string dexFilePath = "./resources/classes.dex";
     if (argc > 1) {
         dexFilePath = argv[1];
     }

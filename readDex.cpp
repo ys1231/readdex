@@ -4,6 +4,7 @@
 
 
 #include "readDex.h"
+#include <assert.h>
 #include"sourceh/modifiers.h"
 #include "myuleb128.h"
 
@@ -29,6 +30,7 @@ bool readDex::openFile(std::string dexFilePath) {
     f.open(dexFilePath.c_str(), ios::in | ios::binary);
     if (!f.is_open()) {
         cout << "open file fail!" << endl;
+        assert(0);
     }
     f.seekp(0, ios_base::end);
     long fileSize = f.tellp();
@@ -157,13 +159,13 @@ bool readDex::analyseTypeStrings() {
 bool readDex::analyseProtoIds() {
 
     for (int i = 0; i < m_pDexHeader->proto_ids_size_; ++i) {
-        printf("%s\n", indexProtoIds(i));
+        cout << indexProtoIds(i) << endl;
     }
 
     return true;
 }
 
-char *readDex::indexProtoIds(int index, bool hide) {
+string readDex::indexProtoIds(int index, bool hide) {
 
     /*
 	 * method:方法原型 string index
@@ -177,10 +179,10 @@ char *readDex::indexProtoIds(int index, bool hide) {
     }
     string protoAll;
     // 解析返回值类型
-    // cout << "Return type:";
+    cout << "返回值类型:";
     protoAll += indexType(m_pProtoIdsItem[index].return_type_idx, hide);
     // 解析method原型
-    //cout << "Method:";
+    cout << " method原型:";
     protoAll += indexString(m_pProtoIdsItem[index].shorty_idx, hide);
 
     // 判断有没有参数
@@ -188,18 +190,18 @@ char *readDex::indexProtoIds(int index, bool hide) {
         // 获取TypeList 首地址
         int *TypeListOff = (int *) (m_pProtoIdsItem[index].parameters_off + m_pBuff);
         // 解析参数个数和参数类型
-        // cout << "VelueSize:" << *TypeListOff << endl;
+
         // 前4个字节 表示 这个方法有几个参数 后面是 short 类型 typeids的下标
         short *index = (short *) (TypeListOff + 1);
+        cout << " VelueSize:" << *index<<endl;
+        cout << " velue:";
         for (uint32_t i = 0; i < *TypeListOff; i++) {
-            // cout << "velue:";
             protoAll += indexType(*index, hide);
             index++;
         }
     }
-    //cout << "VelueSize: null \n";
 
-    return const_cast<char *>(protoAll.c_str());
+    return protoAll;
 
 }
 
@@ -266,7 +268,7 @@ bool readDex::analyseMethodIds() {
 	 * 	name_idx;				// 3. 该method名称    String_Ids index
 	 */
     for (uint32_t i = 0; i < m_pDexHeader->method_ids_size_; i++) {
-        cout << "第" << i << "个Method" << endl;
+        cout << "第" << i << " 个Method" << endl;
         cout << "该method所属class类型:";
         indexType(m_pMethodIdsItem[i].class_idx);
         cout << "该method的原型:";
@@ -280,7 +282,8 @@ bool readDex::analyseMethodIds() {
 
 bool readDex::analyseClassIds() {
     // TODO 可直接调用 indexClassDefs 根据下标索引
-    indexClassDefs(1964);
+    for (uint32_t i = 0; i < m_pDexHeader->class_defs_size_; i++)
+        indexClassDefs(i);
     return false;
 }
 

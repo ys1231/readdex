@@ -206,7 +206,7 @@ private:
     char *indexType(int index, bool hide = true);
 
     // 索引方法参数返回值名字
-    char *indexProtoIds(int index, bool hide = true);
+    string indexProtoIds(int index, bool hide = true);
 
     // 索引字段信息
     char *indexFieldIds(int index, bool hide = true);
